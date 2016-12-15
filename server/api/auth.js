@@ -1,50 +1,47 @@
-token = Tokens.findOne({});
+console.log('initializing...');  
+/**
+ * This should be called when remote service has someone
+ * to try to login
+ */
+initLogin('admin@mail.com', 'abc123');
 
-if (!token) {
- 	initLogin();
- 	console.log('initializing...');
+/**
+ * Initialize login
+ * 
+ * Login using remote credential account
+ * to access this service
+ * 
+ * @param {any} email
+ * @param {any} password
+ */
+function initLogin(email, password) {
+  // Using the remote service to login
+  Conn.call('login', {
+    user: { email: email },
+    password: password
+  }, function (err, result) {
+    if (err) {
+      console.log('ERROR logging in email:', email);
+      console.log(err);
+      return;
+    }
 
-} else {
-	loginWithToken(token);
-	console.log('logging in with Token...');
-}
-
-function initLogin() {
-
-	Conn.call('login', {
-			user: {
-	    		email: 'admin@mail.com'
-	  		},
-	      	password: 'abc123'
-    	},
-
-	    function (err, result) {
-	    	if (err) {
-	        	console.log('ERROR logging in:');
-	        	console.log(err);
-	        	return;
-	      	}
-	      
-	      	Tokens.upsert({userid: result.id }, {$set: result});
-	});
+    // saving tokens by user id
+    Tokens.upsert({ userid: result.id }, { $set: result });
+  });
 }
 
 function loginWithToken(token) {
-	Conn.call('login', {
-    		'resume': token.token
-    	},
+  Conn.call('login', {
+    'resume': token.token
+  }, function (err, res) {
+    if (err) {
+      console.log('Error loggin in with token');
+      console.log(err);
+      return;
+    }
 
-	    function (err, res) {
-	    	if (err) {
-	        	Tokens.remove();
-	        	console.log('error loggin in with token');
-	        	console.log(err);
-
-	        	// if the token didn't work, try logging in as init
-	        	initLogin();
-	        	return;
-	      	}
-	      	
-	      	Tokens.upsert({userid: res.id}, {$set: res});
-    });
+    // saving tokens by user id
+    Tokens.upsert({ userid: res.id }, { $set: res });
+  });
 }
